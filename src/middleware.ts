@@ -1,6 +1,6 @@
 import createMiddleware from 'next-intl/middleware';
-import { locales, defaultLocale } from './i18n/config';
 import { NextRequest, NextResponse } from 'next/server';
+import { locales, defaultLocale } from './i18n';
 
 const intlMiddleware = createMiddleware({
   locales,
@@ -8,30 +8,30 @@ const intlMiddleware = createMiddleware({
   localePrefix: 'always'
 });
 
-export default async function middleware(request: NextRequest) {
-  // 1. Handle i18n first
+export default function middleware(request: NextRequest) {
+  // 1. Laisser next-intl gérer la redirection de langue en premier
   const response = intlMiddleware(request);
-
-  // 2. Protect sensitive routes (basic cookie check; full role check is
-  //    enforced by the APIs and the UI "Access Denied" fallback)
+  
+  // 2. Vérification d'authentification pour les routes protégées
   const pathname = request.nextUrl.pathname;
-  const isProtectedRoute =
-    pathname.includes('/dashboard') || pathname.includes('/validator');
-
-  if (isProtectedRoute) {
+  if (pathname.includes('/dashboard') || pathname.includes('/validator')) {
     const token = request.cookies.get('auth-token')?.value;
-
+    
     if (!token) {
-      const locale = pathname.split('/')[1] || defaultLocale;
-      const loginUrl = new URL(`/${locale}/login`, request.url);
+      // Extraire la locale actuelle de l'URL (ex: "/fr/dashboard" -> "fr")
+      const pathParts = pathname.split('/');
+      const currentLocale = locales.includes(pathParts[1] as any) ? pathParts[1] : defaultLocale;
+      
+      const loginUrl = new URL(`/${currentLocale}/login`, request.url);
       loginUrl.searchParams.set('callbackUrl', pathname);
       return NextResponse.redirect(loginUrl);
     }
   }
-
+  
   return response;
 }
 
 export const config = {
-  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)']
+  // Matcher tout SAUF les fichiers statiques et l'API
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)']
 };
