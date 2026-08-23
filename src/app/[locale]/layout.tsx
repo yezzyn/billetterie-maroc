@@ -8,26 +8,18 @@ import { Footer } from '@/components/layout/footer';
 import { locales } from '@/i18n/config';
 import '../globals.css';
 
+// Force le rendu dynamique pour éviter les bugs de cache i18n sur Vercel
 export const dynamic = 'force-dynamic';
 
-const cairo = Cairo({
-  subsets: ['arabic'],
-  variable: '--font-cairo'
-});
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter'
-});
+const cairo = Cairo({ subsets: ['arabic'], variable: '--font-cairo' });
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
   title: 'Billetterie Maroc',
   description: 'Application de billetterie pour le Maroc'
 };
 
-export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
-}
+// 👇 SUPPRIMEZ LA FONCTION generateStaticParams D'ICI 👇
 
 export default async function LocaleLayout({
   children,
@@ -36,10 +28,8 @@ export default async function LocaleLayout({
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }) {
-  // 1. Extraire la locale des params (Next.js 15+ utilise Promise)
   const { locale } = await params;
   
-  // 2. Vérifier que la locale est valide
   if (!hasLocale(locales, locale)) {
     notFound();
   }
@@ -52,12 +42,9 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} dir={dir}>
       <body className={`${cairo.variable} ${inter.variable} ${fontClass}`}>
-        
-        {/* 👇 DEBUG BADGE : Pour savoir quelle langue Next.js utilise vraiment 👇 */}
         <div className="fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg z-50 font-bold text-xl shadow-lg">
           LOCALE ACTIVE : {locale.toUpperCase()}
         </div>
-        {/* 👆 FIN DU DEBUG BADGE (à supprimer une fois que ça marche) 👆 */}
 
         <NextIntlClientProvider messages={messages}>
           <div className="flex min-h-screen flex-col">
@@ -66,7 +53,6 @@ export default async function LocaleLayout({
             <Footer />
           </div>
         </NextIntlClientProvider>
-        
       </body>
     </html>
   );
