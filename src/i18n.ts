@@ -1,12 +1,14 @@
 import { getRequestConfig } from 'next-intl/server';
-import { locales, defaultLocale } from './i18n/config';
 
 export default getRequestConfig(async ({ locale }) => {
-  // On force TypeScript à comprendre que validLocale est TOUJOURS une string
-  const validLocale: string = (locale && locales.includes(locale as any)) ? locale : defaultLocale;
+  // Force la locale à être une string valide
+  const validLocale = locale === 'fr' ? 'fr' : locale === 'en' ? 'en' : 'ar';
+  
+  // Import dynamique avec le bon fichier
+  const messages = await import(`../messages/${validLocale}.json`);
   
   return {
     locale: validLocale,
-    messages: (await import(`../messages/${validLocale}.json`)).default
+    messages: messages.default
   };
 });
