@@ -1,0 +1,345 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  VALIDATOR
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  WAITING_ROOM
+  OPEN
+  CLOSED
+  CANCELLED
+}
+
+enum SeatStatus {
+  AVAILABLE
+  LOCKED
+  RESERVED
+  SOLD
+}
+
+enum ReservationStatus {
+  PENDING
+  PAYMENT_PENDING
+  PAID
+  USED
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentMethod {
+  CMI
+  CASHPLUS
+  WAFACASH
+  BARIDCASH
+  FLOOZ
+  JAWWALPAY
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id           String    @id @default(uuid())
+  cin          String    @unique
+  firstNameAr  String?
+  firstNameFr  String?
+  lastNameAr   String?
+  lastNameFr   String?
+  phone        String    @unique
+  email        String?   @unique
+  password     String
+  role         UserRole  @default(USER)
+  isVerified   Boolean   @default(false)
+  otpCode      String?
+  otpExpiresAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastLoginAt  DateTime?
+
+  reservations Reservation[]
+  queueEntries WaitingQueue[]
+
+  @@index([cin])
+  @@index([phone])
+  @@index([email])
+}
+
+model Venue {
+  id        String   @id @default(uuid())
+  nameAr    String
+  nameFr    String
+  nameEn    String
+  address   String
+  city      String
+  capacity  Int
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events Event[]
+  seats  Seat[]
+  zones  StadiumZone[]
+  stadiumConfigs StadiumConfig[]
+
+  @@index([city])
+}
+
+model Event {
+  id            String      @id @default(uuid())
+  nameAr        String
+  nameFr        String
+  nameEn        String
+  descriptionAr String?
+  descriptionFr String?
+  descriptionEn String?
+  venueId       String
+  venue         Venue       @relation(fields: [venueId], references: [id])
+  eventDate     DateTime
+  startTime     String
+  endTime       String?
+  status        EventStatus @default(DRAFT)
+  imageUrl      String?
+  bannerUrl     String?
+
+  maxTicketsPerUser Int       @default(4)
+  saleStartDate     DateTime?
+  saleEndDate       DateTime?
+
+  priceMin Decimal @db.Decimal(10, 2)
+  priceMax Decimal @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  seats        Seat[]
+  reservations Reservation[]
+  queueEntries WaitingQueue[]
+
+  @@index([venueId])
+  @@index([eventDate])
+  @@index([status])
+}
+
+model Seat {
+  id         String     @id @default(uuid())
+  venueId    String
+  venue      Venue      @relation(fields: [venueId], references: [id])
+  eventId    String?
+  event      Event?     @relation(fields: [eventId], references: [id])
+
+  section    String
+  rowNumber  Int
+  seatNumber Int
+
+  // Moroccan standard addressing (denormalized for tickets)
+  entrance   String?
+  gate       String?
+  access     String?
+  block      String?
+  rowLetter  String?
+
+  category   String
+  price      Decimal    @db.Decimal(10, 2)
+
+  status     SeatStatus @default(AVAILABLE)
+
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  reservation Reservation?
+
+  @@unique([venueId, eventId, section, rowNumber, seatNumber])
+  @@index([venueId])
+  @@index([eventId])
+  @@index([status])
+}
+
+model Reservation {
+  id            String            @id @default(uuid())
+  userId        String
+  user          User              @relation(fields: [userId], references: [id])
+  eventId       String
+  event         Event             @relation(fields: [eventId], references: [id])
+  seatId        String?           @unique
+  seat          Seat?             @relation(fields: [seatId], references: [id])
+
+  // Moroccan standard addressing snapshot (Entrance/Gate/Access/Block/Row/Seat)
+  entrance      String?
+  gate          String?
+  access        String?
+  block         String?
+  rowLetter     String?
+  seatLabel     String?
+
+  qrCodeHash    String            @unique
+  qrCodeData    String            @unique
+
+  status        ReservationStatus @default(PENDING)
+
+  paymentMethod PaymentMethod?
+  paymentStatus PaymentStatus     @default(PENDING)
+  paymentId     String?
+
+  price      Decimal @db.Decimal(10, 2)
+  fees       Decimal @db.Decimal(10, 2) @default(0)
+  totalPrice Decimal @db.Decimal(10, 2)
+
+  reservedUntil DateTime?
+  paidAt        DateTime?
+  usedAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([eventId])
+  @@index([qrCodeHash])
+  @@index([status])
+}
+
+model WaitingQueue {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id])
+
+  position  Int
+  status    String   @default("waiting")
+
+  token     String   @unique
+  joinedAt  DateTime @default(now())
+  expiresAt DateTime?
+  servedAt  DateTime?
+
+  @@unique([userId, eventId])
+  @@index([eventId, position])
+  @@index([status])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  details   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// Reusable visual stadium configuration (per venue)
+model StadiumConfig {
+  id            String   @id @default(uuid())
+  venueId       String
+  venue         Venue    @relation(fields: [venueId], references: [id])
+
+  name          String
+  shape         String // "oval", "rectangular", "custom"
+
+  fieldWidth    Int // meters
+  fieldLength   Int // meters
+  totalCapacity Int
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  zones         StadiumZoneConfig[]
+
+  @@index([venueId])
+}
+
+model StadiumZoneConfig {
+  id          String        @id @default(uuid())
+  configId    String
+  config      StadiumConfig @relation(fields: [configId], references: [id])
+
+  name        String
+  category    String // "CAT1", "CAT2", "CAT3", "VIP"
+
+  shape       String // "rectangle", "arc", "custom"
+  position    Json // { x, y, width, height, rotation }
+
+  color       String
+  borderColor String?
+
+  rows        Int
+  seatsPerRow Int
+  rowLabeling String // "letters" | "numbers"
+
+  entrance    String?
+  gate        String?
+  access      String?
+  block       String
+
+  price       Decimal       @db.Decimal(10, 2)
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([configId])
+}
+
+// Moroccan standard addressing: Entrance → Gate → Access → Block → Row → Seat
+model StadiumZone {
+  id          String        @id @default(uuid())
+  venueId     String
+  venue       Venue         @relation(fields: [venueId], references: [id])
+
+  name        String // "Tribune Honneur", "Virage Nord"
+  entrance    String // "E01", "E02", "2"
+  gate        String // "10", "17", "K"
+  access      String // "02", "03", "07"
+  block       String // "139", "305", "313"
+
+  category    String // "CAT1", "CAT2", "CAT3"
+  price       Decimal       @db.Decimal(10, 2)
+
+  color       String
+
+  rows        Int
+  seatsPerRow Int
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  seats       StadiumSeat[]
+
+  @@unique([venueId, block])
+  @@index([venueId])
+}
+
+model StadiumSeat {
+  id         String       @id @default(uuid())
+  zoneId     String
+  zone       StadiumZone  @relation(fields: [zoneId], references: [id])
+
+  rowLetter  String // "A", "B", "BB"
+  seatNumber String // "36", "AF30"
+
+  status     String       @default("active")
+
+  @@unique([zoneId, rowLetter, seatNumber])
+  @@index([zoneId])
+}
