@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import LocaleSwitcher from '@/components/LocaleSwitcher';
+
 
 export function Header() {
   const t = useTranslations('common');
