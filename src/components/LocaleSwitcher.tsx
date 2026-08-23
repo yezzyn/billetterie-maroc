@@ -1,37 +1,38 @@
 'use client';
 
 import { useLocale } from 'next-intl';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
+import { Globe } from 'lucide-react';
 
-export default function LocaleSwitcher() {
+export function LanguageSwitcher() {
   const locale = useLocale();
+  const router = useRouter();
   const pathname = usePathname();
 
-  // Retirer la locale actuelle du chemin pour créer des liens propres
-  // Ex: si pathname est "/fr/events", pathnameWithoutLocale sera "/events"
-  const pathnameWithoutLocale = pathname === `/${locale}` ? '/' : pathname.replace(`/${locale}`, '');
+  const changeLocale = (newLocale: string) => {
+    // Retirer l'ancienne locale du chemin (ex: "/ar/events" -> "/events")
+    const pathnameWithoutLocale = pathname === `/${locale}` ? '/' : pathname.replace(`/${locale}`, '');
+    
+    // Construire le nouveau chemin (ex: "/fr" + "/events" = "/fr/events")
+    const newPath = `/${newLocale}${pathnameWithoutLocale}`;
+    
+    // Forcer la navigation et le rechargement complet pour que next-intl recharge les messages
+    router.push(newPath);
+    router.refresh();
+  };
 
   return (
-    <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg">
-      <Link 
-        href={`/ar${pathnameWithoutLocale}`} 
-        className={`text-sm font-semibold px-2 py-1 rounded transition-colors ${locale === 'ar' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+    <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/20">
+      <Globe className="h-4 w-4 text-white" />
+      <select
+        value={locale}
+        onChange={(e) => changeLocale(e.target.value)}
+        className="bg-transparent text-sm font-semibold text-white focus:outline-none cursor-pointer appearance-none"
       >
-        العربية
-      </Link>
-      <Link 
-        href={`/fr${pathnameWithoutLocale}`} 
-        className={`text-sm font-semibold px-2 py-1 rounded transition-colors ${locale === 'fr' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-200'}`}
-      >
-        FR
-      </Link>
-      <Link 
-        href={`/en${pathnameWithoutLocale}`} 
-        className={`text-sm font-semibold px-2 py-1 rounded transition-colors ${locale === 'en' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-200'}`}
-      >
-        EN
-      </Link>
+        <option value="ar" className="text-gray-900">العربية</option>
+        <option value="fr" className="text-gray-900">Français</option>
+        <option value="en" className="text-gray-900">English</option>
+      </select>
     </div>
   );
 }
