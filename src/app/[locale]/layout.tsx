@@ -36,12 +36,15 @@ export default async function LocaleLayout({
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }) {
+  // 1. Extraire la locale des params (Next.js 15+ utilise Promise)
   const { locale } = await params;
+  
+  // 2. Vérifier que la locale est valide
   if (!hasLocale(locales, locale)) {
     notFound();
   }
+  
   setRequestLocale(locale);
-
   const messages = await getMessages();
   const dir = locale === 'ar' ? 'rtl' : 'ltr';
   const fontClass = locale === 'ar' ? 'font-arabic' : 'font-latin';
@@ -49,39 +52,13 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} dir={dir}>
       <body className={`${cairo.variable} ${inter.variable} ${fontClass}`}>
-        // ... vos imports existants ...
-
-export default async function RootLayout({
-  children,
-  params: { locale }
-}: {
-  children: React.ReactNode;
-  params: { locale: string };
-}) {
-  const messages = await getMessages();
-  const dir = locale === 'ar' ? 'rtl' : 'ltr';
-  const fontClass = locale === 'ar' ? 'font-arabic' : 'font-latin';
-
-  return (
-    <html lang={locale} dir={dir}>
-      <body className={fontClass}>
-        {/* 👇 AJOUTEZ CE DEBUG BADGE ICI 👇 */}
-        <div className="fixed top-0 right-0 bg-red-600 text-white px-4 py-2 z-50 font-bold text-xl">
+        
+        {/* 👇 DEBUG BADGE : Pour savoir quelle langue Next.js utilise vraiment 👇 */}
+        <div className="fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg z-50 font-bold text-xl shadow-lg">
           LOCALE ACTIVE : {locale.toUpperCase()}
         </div>
-        {/* 👆 FIN DU DEBUG BADGE 👆 */}
+        {/* 👆 FIN DU DEBUG BADGE (à supprimer une fois que ça marche) 👆 */}
 
-        <NextIntlClientProvider messages={messages}>
-          <Header />
-          <main className="min-h-screen pt-16">
-            {children}
-          </main>
-          <Footer />
-        </NextIntlClientProvider>
-      </body>
-    </html>
-  );
-}
         <NextIntlClientProvider messages={messages}>
           <div className="flex min-h-screen flex-col">
             <Header />
@@ -89,6 +66,7 @@ export default async function RootLayout({
             <Footer />
           </div>
         </NextIntlClientProvider>
+        
       </body>
     </html>
   );
