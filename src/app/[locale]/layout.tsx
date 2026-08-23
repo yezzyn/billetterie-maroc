@@ -8,6 +8,8 @@ import { Footer } from '@/components/layout/footer';
 import { locales } from '@/i18n/config';
 import '../globals.css';
 
+export const dynamic = 'force-dynamic';
+
 const cairo = Cairo({
   subsets: ['arabic'],
   variable: '--font-cairo'
