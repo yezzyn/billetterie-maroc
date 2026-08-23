@@ -1,8 +1,8 @@
 import { getRequestConfig } from 'next-intl/server';
 
 export default getRequestConfig(async ({ locale }) => {
-  // Fallback sur 'ar' si locale est undefined
-  const validLocale = locale || 'ar';
+  // Force la locale à être 'ar', 'fr' ou 'en', avec 'ar' par défaut
+  const validLocale = (locale === 'ar' || locale === 'fr' || locale === 'en') ? locale : 'ar';
   
   return {
     locale: validLocale,
