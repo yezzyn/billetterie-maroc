@@ -49,6 +49,39 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} dir={dir}>
       <body className={`${cairo.variable} ${inter.variable} ${fontClass}`}>
+        // ... vos imports existants ...
+
+export default async function RootLayout({
+  children,
+  params: { locale }
+}: {
+  children: React.ReactNode;
+  params: { locale: string };
+}) {
+  const messages = await getMessages();
+  const dir = locale === 'ar' ? 'rtl' : 'ltr';
+  const fontClass = locale === 'ar' ? 'font-arabic' : 'font-latin';
+
+  return (
+    <html lang={locale} dir={dir}>
+      <body className={fontClass}>
+        {/* 👇 AJOUTEZ CE DEBUG BADGE ICI 👇 */}
+        <div className="fixed top-0 right-0 bg-red-600 text-white px-4 py-2 z-50 font-bold text-xl">
+          LOCALE ACTIVE : {locale.toUpperCase()}
+        </div>
+        {/* 👆 FIN DU DEBUG BADGE 👆 */}
+
+        <NextIntlClientProvider messages={messages}>
+          <Header />
+          <main className="min-h-screen pt-16">
+            {children}
+          </main>
+          <Footer />
+        </NextIntlClientProvider>
+      </body>
+    </html>
+  );
+}
         <NextIntlClientProvider messages={messages}>
           <div className="flex min-h-screen flex-col">
             <Header />
